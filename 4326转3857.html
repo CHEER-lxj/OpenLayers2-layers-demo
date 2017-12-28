@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>openlayers</title>
+	</head>
+	<style>
+		.demo-transform .map{
+			height: 600px;
+			width:100%;
+			border: 1px solid #ddd;
+		}
+		.demo-transform .btn-box {
+			margin: 10px;
+		}
+		.demo-transform .btn-box .btn {
+		    float: left;
+		    margin-right: 10px;
+		    color: #fff;
+		    background-color: #0680f9;
+		    padding: 10px;
+		    border-radius: 5px;
+		    cursor: pointer;
+		}
+		.demo-transform .clearfix:after {
+			content: '';
+			height: 0;
+			visibility: hidden;
+			clear: both;
+			display: block;
+		}
+	</style>
+	<body>
+		<section class="demo-transform">
+			<section class="btn-box clearfix">
+				<div class="btn" id="no-transform">添加未转换的面</div>
+				<div class="btn" id="transform">添加转换过的面</div>
+			</section>
+			<div id="map" class="map"></div>
+		</section>
+	</body>
+
+	<script src="./lib/openGis/OpenLayers.js"></script>
+    <script>
+		let map = null, vectorLayer = null,
+			noTransform = document.getElementById('no-transform'),
+			transform = document.getElementById('transform');
+			
+
+		// 初始化
+		const init = () => {
+
+			// 新建map对象,挂载地图
+			map = new OpenLayers.Map({
+				div: "map",
+				controls: [
+					new OpenLayers.Control.Navigation(), // 处理伴随鼠标事件（拖拽，双击、鼠标滚轮缩放）的地图浏览
+                    new OpenLayers.Control.MousePosition(),     
+				]
+			});
+
+			// 创建地图地图   This layer allows accessing OpenStreetMap tiles use 3857
+			let osm = new OpenLayers.Layer.OSM();
+			// 创建矢量元素图层
+			vectorLayer = new OpenLayers.Layer.Vector("Simple Geometry");
+
+			// 添加图层 数组 {Array(OpenLayers.Layer)}
+			map.addLayers([osm, vectorLayer]);
+
+			// 设置中心点位置 setCenter: function(lonlat, zoom, dragging, forceZoomChange)
+			// transform: function(source,dest)  Transform the LonLat object from source to dest.
+			map.setCenter(new OpenLayers.LonLat(120.34,30.25).transform(
+				new OpenLayers.Projection("EPSG:4326"),
+				//Returns the projection obect from the baselayer.
+                map.getProjectionObject()
+			),12);
+
+			// 未经转换的坐标 则地图上会找不到此坐标
+			// map.setCenter(new OpenLayers.LonLat(120.1213, 30.7823), 12);
+			window.map = map;
+		};
+
+		// 清除所有的地理要素
+		const cleanFeature = () => {
+			vectorLayer.removeAllFeatures();
+		};
+
+		// 获取WKT元素
+		const getWKT = () => "POLYGON((120.3001 30.20003, 120.59687 30.301013, 120.38932 30.299056))";
+
+		// 绘制坐标转化后的面
+		const addFeactureVectorTransform = () => {
+			cleanFeature();
+
+			/** 
+			 *	WKT 转 Geomery
+			 * OpenLayers.Format.WKT().read :  Deserialize a WKT string and return a vector feature or an array of vector features.  
+			 * Supports WKT for POINT, MULTIPOINT, LINESTRING, MULTILINESTRING, POLYGON, MULTIPOLYGON, and GEOMETRYCOLLECTION.
+			 *
+			 * Geomery 转 WKT
+			 * OpenLayers.Format.WKT().write :  Serialize a feature or array of features into a WKT string.
+			 */
+			
+			let vectorT = new OpenLayers.Format.WKT().read(getWKT());
+			let geometryT = vectorT.geometry;
+
+			// 官方API中未找到此方法 但是outdated docs 中有提及 [地址:](http://docs.openlayers.org/library/spherical_mercator.html) 
+			geometryT.transform(new OpenLayers.Projection("EPSG:4326"), map.getProjectionObject());
+
+			// OpenLayers.Feature.Vector : Create a vector feature
+			let LinearRingVectorT = new OpenLayers.Feature.Vector(geometryT);
+
+			// OpenLayers.Layer.Vector.addFeatures : Add Features to the layer.
+			vectorLayer.addFeatures([LinearRingVectorT]);	
+			// console.log('geometryT', geometryT);
+		};
+
+		// 绘制未经坐标转化的面
+		const addFeactureVector = () => {
+			cleanFeature();
+			let vector = new OpenLayers.Format.WKT().read(getWKT());
+			let geometry = vector.geometry;
+
+			// OpenLayers.Feature.Vector : Create a vector feature
+			let LinearRingVector = new OpenLayers.Feature.Vector(geometry);
+			
+			// OpenLayers.Layer.Vector.addFeatures : Add Features to the layer.
+			vectorLayer.addFeatures([LinearRingVector]);
+			// console.log('geometry', geometry);	
+		}; 
+
+		transform.addEventListener('click', addFeactureVectorTransform, false);
+		noTransform.addEventListener('click', addFeactureVector, false);
+		init();
+    </script>
+    
+</html>

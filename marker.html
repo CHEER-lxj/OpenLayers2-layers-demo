@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>openlayers</title>
+	</head>
+	<style>
+		.demo-marker .map{
+			height: 600px;
+			width:100%;
+			border: 1px solid #ddd;
+		}
+		.demo-marker .btn-box {
+			margin: 10px;
+		}
+		.demo-marker .btn-box .btn {
+		    float: left;
+		    margin-right: 10px;
+		    color: #fff;
+		    background-color: #0680f9;
+		    padding: 10px;
+		    border-radius: 5px;
+		    cursor: pointer;
+		}
+		.demo-marker .clearfix:after {
+			content: '';
+			height: 0;
+			visibility: hidden;
+			clear: both;
+			display: block;
+		}
+	</style>
+	<body>
+		<section class="demo-marker">
+			<section id="J_btnBox" class="btn-box clearfix">
+				<div class="btn" id="creat">Add</div>
+				<div class="btn" id="register">Register</div>
+				<div class="btn" id="clear">Clear</div>
+			</section>
+			<div id="map" class="map"></div>
+		</section>
+	</body>
+
+	<script src="./lib/openGis/OpenLayers.js"></script>
+    <script>
+		let map = null, markerLayer = null, marker = null,
+			btnBox = document.getElementById('J_btnBox');	
+			
+		// 初始化
+		const init = () => {
+
+			// 新建map对象,挂载地图
+			map = new OpenLayers.Map({
+				div: "map",
+			});
+
+			// 创建地图底图   This layer allows accessing OpenStreetMap tiles use 3857
+			let osm = new OpenLayers.Layer.OSM();
+			// 创建矢量元素图层
+			markerLayer = new OpenLayers.Layer.Markers("Simple Marker");
+
+			// 添加图层 数组 {Array(OpenLayers.Layer)}
+			map.addLayers([osm, markerLayer]);
+
+			// 设置中心点位置 setCenter: function(lonlat, zoom, dragging, forceZoomChange)
+			// transform: function(source,dest)  Transform the LonLat object from source to dest.
+			map.setCenter(new OpenLayers.LonLat(120.34,30.25).transform(
+				new OpenLayers.Projection("EPSG:4326"),
+				//Returns the projection obect from the baselayer.
+                map.getProjectionObject()
+			),10);
+
+			window.map = map;
+		};
+
+		// 在地图上标记Marker
+		const creatMarker = () => {
+			let lonlat = new OpenLayers.LonLat(120.694,30.235).transform(
+				new OpenLayers.Projection("EPSG:4326"),
+                map.getProjectionObject());
+			let size = new OpenLayers.Size(100,80);
+			// OpenLayers.Pixel : This class represents a screen coordinate, in x and y coordinates.
+			let offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
+			let icon = new OpenLayers.Icon('./img/marker.png', size);
+			
+			marker = new OpenLayers.Marker(lonlat, icon.clone(), offset);
+			markerLayer.addMarker(marker);
+		};
+
+		// 销毁marker
+		const clearMarker = () => {
+			if(marker && marker.events !== null) {
+				marker.destroy();
+				map.layers[1].markers.length = 0;
+			}	
+		};
+
+		// 点击事件
+		const clickEvent = (e) => {
+			alert("请打开控制台,查看详细信息");
+			console.log(e);
+		};
+
+		// 注册map事件 
+		const registerEvent = () => {
+			if(marker && marker.events !== null) {
+				marker.events.register('click', marker, clickEvent);
+			}
+		};
+
+		btnBox.addEventListener('click', (e) => {
+			if(e.target && e.target.id) {
+				let enenvId = e.target.id;
+				if(enenvId === 'creat') {
+					creatMarker();
+				}
+				if(enenvId === 'register') {
+					registerEvent();
+				}
+				if(enenvId === 'clear') {
+					clearMarker();
+				}
+			}
+		}, false);
+		
+		init();
+
+    </script>
+</html>

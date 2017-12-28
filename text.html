@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>openlayers</title>
+	</head>
+	<style>
+		.demo-text .map{
+			height: 600px;
+			width:100%;
+			border: 1px solid #ddd;
+		}
+	</style>
+	<body>
+		<section class="demo-text">
+			<div id="map" class="map"></div>
+		</section>
+	</body>
+
+	<script src="./lib/openGis/OpenLayers.js"></script>
+    <script>
+		let map = null, textLayer = null;
+
+		// 初始化
+		const init = () => {
+
+			// 新建map对象,挂载地图
+			map = new OpenLayers.Map({
+				div: "map"
+			});
+
+			// 创建地图地图   Create a new WMS layer object use 4326
+			let wms = new OpenLayers.Layer.WMS( "OpenLayers WMS",
+                    "http://vmap0.tiles.osgeo.org/wms/vmap0", {layers: 'basic'} );
+
+			map.addLayer(wms);
+
+			// 创建矢量元素图层
+			textLayer = new OpenLayers.Layer.Text("Simple Text", {location: "textFile.txt"});
+			// textLayer = new OpenLayers.Layer.Text("Simple Text", {location: "http://dev.openlayers.org/examples/textfile.txt"});
+
+			// 添加图层 数组 {Array(OpenLayers.Layer)}
+			map.addLayers([textLayer]);
+
+			// 设置中心点位置 setCenter: function(lonlat, zoom, dragging, forceZoomChange)
+			// transform: function(source,dest)  Transform the LonLat object from source to dest.
+			map.setCenter(new OpenLayers.LonLat(10, 20), 3);
+
+			window.map = map;
+		};
+
+		init();
+    </script>
+    
+</html>

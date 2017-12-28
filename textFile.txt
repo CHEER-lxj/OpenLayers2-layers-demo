@@ -1,0 +1,3 @@
+point	title	description	icon
+10,20	TITLE	my orange description	
+2,4	TITLE TOO	my aqua description	

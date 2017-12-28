@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>openlayers</title>
+	</head>
+	<style>
+		.demo-vector .map{
+			height: 600px;
+			width:100%;
+			border: 1px solid #ddd;
+		}
+		.demo-vector .btn-box {
+			margin: 10px;
+		}
+		.demo-vector .btn-box .btn {
+		    float: left;
+		    margin-right: 10px;
+		    color: #fff;
+		    background-color: #0680f9;
+		    padding: 10px;
+		    border-radius: 5px;
+		    cursor: pointer;
+		}
+		.demo-vector .clearfix:after {
+			content: '';
+			height: 0;
+			visibility: hidden;
+			clear: both;
+			display: block;
+		}
+	</style>
+	<body>
+		<section class="demo-vector">
+			<section id="J_btnBox" class="btn-box clearfix">
+				<div class="btn" id="select">Select</div>
+				<div class="btn" id="multiselect">Multiselect</div>
+				<div class="btn" id="hover">Hover</div>
+				<div class="btn" id="click">Click</div>
+			</section>
+			<div id="map" class="map"></div>
+		</section>
+	</body>
+
+	<script src="./lib/openGis/OpenLayers.js"></script>
+    <script>
+		let map = null, vectorLayer = null, selectFeature = null,
+			btnBox = document.getElementById('J_btnBox');	
+			
+		// 初始化
+		const init = () => {
+
+			// 新建map对象,挂载地图
+			map = new OpenLayers.Map({
+				div: "map",
+			});
+
+			// 创建地图底图   This layer allows accessing OpenStreetMap tiles use 3857
+			let osm = new OpenLayers.Layer.OSM();
+			// 创建矢量元素图层
+			vectorLayer = new OpenLayers.Layer.Vector("Simple Vector", {styleMap: styleMap});
+
+			// 添加图层 数组 {Array(OpenLayers.Layer)}
+			map.addLayers([osm, vectorLayer]);
+
+			// 设置中心点位置 setCenter: function(lonlat, zoom, dragging, forceZoomChange)
+			// transform: function(source,dest)  Transform the LonLat object from source to dest.
+			map.setCenter(new OpenLayers.LonLat(120.34,30.25).transform(
+				new OpenLayers.Projection("EPSG:4326"),
+				//Returns the projection obect from the baselayer.
+                map.getProjectionObject()
+			),10);
+
+			window.map = map;
+		};
+
+		// 创建点、线、面三种矢量元素
+		const initVectorLayer = () => {
+			let pointFeature = new OpenLayers.Feature.Vector(coordinateTransform(getWKT.POINT));
+			let lineFeature = new OpenLayers.Feature.Vector(coordinateTransform(getWKT.LINE));
+			let polygonFeature = new OpenLayers.Feature.Vector(coordinateTransform(getWKT.POLYGON));
+			vectorLayer.addFeatures([pointFeature, lineFeature, polygonFeature]);
+		};
+
+		// 销毁已存在控件
+		const destroyFeature = () => {
+			if (selectFeature) {
+		        map.removeControl(selectFeature);
+		        selectFeature.destroy();
+		    }
+		};
+
+		// 激活控件
+		const activate = () => {
+			selectFeature.activate();
+		};
+
+		//要素被选中时调用此函数,需要传入当前选中要素参数feature
+		const onFeatureSelect = (feature) => {
+			alert('请查看控制台,获取feature!');
+		    console.log('feature', feature);
+		}
+
+		// 添加 click control
+		const openClickControl = () => {
+			destroyFeature();
+		    /**
+		     * 实例化 selectFeature 控件
+			 * OpenLayers.Control.SelectFeature : 
+			 * params {
+			 * 	  layer,
+			 * 	  options
+			 * }
+			 * onSelect : {Function} Optional function to be called when a feature is selected.  The function should expect to be called with a featur.
+			 * hover : {Boolean} Select on mouse over and deselect on mouse out.  If true, this ignores clicks and only listens to mouse moves.
+		     */
+		    selectFeature = new OpenLayers.Control.SelectFeature(vectorLayer, {onSelect: onFeatureSelect, hover: false});
+		    map.addControl(selectFeature);
+		    //激活控件
+		    activate();
+		};
+
+		// 添加 hover control
+		const openHoverControl = () => {
+			destroyFeature();
+			selectFeature = new OpenLayers.Control.SelectFeature(vectorLayer, {hover: true});
+            map.addControl(selectFeature);
+            activate();
+		};
+
+		// 添加 select control
+		const openSelectControl = () => {
+			destroyFeature();
+		    //实例化 selectFeature 控件
+		    selectFeature = new OpenLayers.Control.SelectFeature(vectorLayer, {hover: false});
+		    map.addControl(selectFeature);
+		    //激活控件
+		    activate();
+		};
+
+		// 添加 multi control
+		const openMultiSelectControl = () => {
+			destroyFeature();
+		    //实例化 selectFeature 控件
+		    selectFeature = new OpenLayers.Control.SelectFeature(vectorLayer, {hover: false});
+		    selectFeature.multiple = true;
+		    map.addControl(selectFeature);
+		    //激活控件
+		    activate();
+		};
+
+		// WKT对象字面量
+		const getWKT = {
+			POLYGON: "POLYGON((120.3001 30.20003, 120.59687 30.301013, 120.38932 30.299056))",
+			LINE: "LINESTRING(120.79687 30.061013, 120.08932 30.209056)",
+			POINT: "POINT(120.29001 30.49003)"
+		};
+
+		// 坐标转化
+		const coordinateTransform = (source) => {
+			let vectorT = new OpenLayers.Format.WKT().read(source);
+			let geometryT = vectorT.geometry;
+			return geometryT.transform(new OpenLayers.Projection("EPSG:4326"), map.getProjectionObject());	
+		};
+		
+		const styleMap = new OpenLayers.StyleMap({
+			"default": new OpenLayers.Style({
+	            strokeColor: "#ffffff",  // 描边颜色
+				fillColor: "#0680f9",    // 填充颜色
+				strokeWidth: 6,          // 描边像素宽度
+				pointRadius: 15          // 像素点半径
+           	}),
+            "select": new OpenLayers.Style({
+                fillColor: "#66aaee",
+                strokeColor: "#3399ff",
+               	strokeWidth: 6,          
+				pointRadius: 15        
+            })
+		});
+
+		btnBox.addEventListener('click', (e) => {
+			if(e.target && e.target.id) {
+				let vectorType = e.target.id;
+				if(vectorType === 'select') {
+					openSelectControl();
+				}
+				if(vectorType === 'multiselect') {
+					openMultiSelectControl();
+				}
+				if(vectorType === 'hover') {
+					openHoverControl();
+				}
+				if(vectorType === 'click') {
+					openClickControl();
+				}
+			}
+		}, false);
+		
+		init();
+		initVectorLayer();
+
+    </script>
+</html>
